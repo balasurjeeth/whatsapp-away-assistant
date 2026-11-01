@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f7f4">
+    <title>Away — WhatsApp Away Assistant</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="Away home"><span class="brand-mark">a</span><span>away<span class="brand-dot">.</span></span></a>
+        <span class="connection"><i id="connectionDot"></i><span id="connectionText">Checking setup…</span></span>
+      </header>
+      <section class="intro">
+        <p class="eyebrow">YOUR LITTLE PAUSE BUTTON</p>
+        <h1>Be away.<br><span>Stay thoughtful.</span></h1>
+        <p class="intro-copy">A gentle heads-up for your friends, while you get a moment to yourself.</p>
+      </section>
+      <div id="notice" class="notice" role="status" hidden></div>
+      <section class="status-card">
+        <div class="status-copy">
+          <span class="eyebrow">AWAY MODE</span>
+          <h2 id="modeTitle">Draft mode is ready</h2>
+          <p id="modeDescription">Set your details, then switch on when you need a little space.</p>
+        </div>
+        <button id="activateButton" class="button button-dark" type="button">Set up away mode</button>
+      </section>
+      <div class="columns">
+        <section class="panel settings-panel">
+          <div class="panel-heading">
+            <div><p class="eyebrow">YOUR SETTINGS</p><h2>Make it yours</h2></div>
+            <span class="step-badge">01</span>
+          </div>
+          <form id="settingsForm">
+            <label>Away reason
+              <select id="reason" required>
+                <option value="">Choose one</option><option value="busy">Busy</option>
+                <option value="driving">Driving</option><option value="in a meeting">In a meeting</option>
+                <option value="resting">Resting</option><option value="travelling">Travelling</option>
+              </select>
+            </label>
+            <label>Back at <span class="label-hint">e.g. after 6 PM, tomorrow</span>
+              <input id="returnAt" required maxlength="80" placeholder="A time or day">
+            </label>
+            <label>Urgent contact <span class="label-hint">The person to call if it can't wait</span>
+              <input id="urgentContact" required maxlength="100" placeholder="Name or phone number">
+            </label>
+            <label>VIP friends <span class="label-hint">Names or numbers, separated by commas; enter “none” if none</span>
+              <input id="vipFriends" required maxlength="500" placeholder="Maya, +1 555 0100">
+            </label>
+            <fieldset>
+              <legend>Quiet hours <span id="timeZoneHint" class="label-hint">Your local time; set both to off to disable</span></legend>
+              <input id="timeZone" type="hidden">
+              <div class="time-row">
+                <label class="sr-only" for="quietStart">Quiet hours start</label>
+                <input id="quietStart" required aria-label="Quiet hours start (24-hour HH:MM or off)" placeholder="off">
+                <span>to</span>
+                <label class="sr-only" for="quietEnd">Quiet hours end</label>
+                <input id="quietEnd" required aria-label="Quiet hours end (24-hour HH:MM or off)" placeholder="off">
+              </div>
+            </fieldset>
+            <fieldset class="mode-fieldset">
+              <legend>How should replies work?</legend>
+              <label class="radio-card"><input type="radio" name="mode" value="approval" checked><span><strong>Draft & approve</strong><small>Prepare a reply for your review. Nothing sends automatically.</small></span></label>
+              <label class="radio-card"><input type="radio" name="mode" value="automatic"><span><strong>Automatic replies</strong><small>Send eligible replies automatically while away.</small></span></label>
+              <label id="confirmRow" class="confirm-row" hidden><input id="confirmAutomatic" type="checkbox"><span>I understand this will automatically send replies through my configured WhatsApp Business account.</span></label>
+            </fieldset>
+            <div class="form-actions"><button class="button button-primary" type="submit">Save settings</button><span id="saveState" class="save-state" aria-live="polite"></span></div>
+          </form>
+        </section>
+        <section class="panel activity-panel">
+          <div class="panel-heading">
+            <div><p class="eyebrow">YOUR RECENT ACTIVITY</p><h2>Handled with care</h2></div>
+            <span id="entryCount" class="count">0</span>
+          </div>
+          <div class="privacy-note"><span aria-hidden="true">✳</span><p>Incoming message text is only checked in memory. It is never saved here.</p></div>
+          <div id="entries" class="entries"><p class="empty-state">Your recent activity will show up here.</p></div>
+          <details class="try-it">
+            <summary>Try a sample message</summary>
+            <form id="simulateForm">
+              <label>Friend's name<input id="sampleName" placeholder="A friend"></label>
+              <label>Message text<input id="sampleText" required maxlength="500" placeholder="Type a message to test classifications"></label>
+              <label class="check-label"><input id="sampleGroup" type="checkbox">This is a group chat</label>
+              <button class="button button-outline" type="submit">Preview what happens</button>
+            </form>
+          </details>
+          <p class="setup-note">This app does not connect until you configure Meta's official WhatsApp Business Platform credentials. WhatsApp Business Platform does not support ordinary WhatsApp personal accounts.</p>
+        </section>
+      </div>
+      <footer>Made for your people, with a little breathing room. <a href="/README.md">Setup guide</a></footer>
+    </main>
+  </body>
+</html>
