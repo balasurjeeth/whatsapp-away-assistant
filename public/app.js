@@ -31,6 +31,7 @@ function render() {
   document.querySelector(`input[name="mode"][value="${settings.mode}"]`).checked = true;
   $("#confirmRow").hidden = settings.mode !== "automatic";
   $("#activateButton").textContent = settings.active ? "Turn away mode off" : "Switch away mode on";
+  if (settings.active) $("#activateButton").textContent = "I'm free now · turn off";
   $("#modeTitle").textContent = settings.active
     ? settings.mode === "automatic" ? "Automatic replies are on" : "Draft & approve is on"
     : "Draft mode is ready";
@@ -39,9 +40,24 @@ function render() {
     : connected ? "Set your details, then switch on when you need a little space." : "Set up drafts here; connect an official WhatsApp Business account to receive messages.";
   $("#entryCount").textContent = entries.length;
   $("#entries").innerHTML = entries.length ? entries.map(renderEntry).join("") : '<p class="empty-state">Your recent activity will show up here.</p>';
+  renderReminders(entries);
+  $("#notificationButton").hidden = !("Notification" in window) || Notification.permission === "granted";
   $("#entries").querySelectorAll("[data-approve]").forEach((button) => {
     button.addEventListener("click", () => approve(button.dataset.approve));
   });
+  $("#reminders").querySelectorAll("[data-follow-up]").forEach((button) => {
+    button.addEventListener("click", () => completeFollowUp(button.dataset.followUp));
+  });
+}
+
+function renderReminders(entries) {
+  const reminders = entries.filter((entry) => entry.followUp === "pending");
+  $("#reminderPanel").hidden = reminders.length === 0;
+  $("#reminderCount").textContent = reminders.length;
+  $("#reminders").innerHTML = reminders.map((entry) => {
+    const category = entry.category === "money" ? "Payment to handle" : entry.category === "urgent" ? "Urgent message" : "Message";
+    return `<article class="entry"><div class="entry-top"><span class="entry-name">${escapeHtml(entry.name)}</span><time class="entry-time">${new Date(entry.createdAt).toLocaleString()}</time></div><div class="entry-actions"><span class="entry-status">${escapeHtml(category)} · follow up</span><button class="button button-outline" data-follow-up="${escapeHtml(entry.id)}">Mark handled</button></div></article>`;
+  }).join("");
 }
 
 function renderEntry(entry) {
@@ -121,8 +137,36 @@ $("#activateButton").addEventListener("click", async () => {
     });
     $("#notice").hidden = true;
     await refresh();
+    if (!active) notifyFreeTimeReminders();
   } catch (error) {
     showNotice(error.message);
+  }
+});
+
+function notifyFreeTimeReminders() {
+  const count = state.entries.filter((entry) => entry.followUp === "pending").length;
+  if (!count) {
+    showNotice("Away mode is off. You're all caught up!");
+    return;
+  }
+  const message = `You have ${count} message${count === 1 ? "" : "s"} to check or follow up on.`;
+  showNotice(message);
+  if ("Notification" in window && Notification.permission === "granted") {
+    new Notification("You're back", { body: message });
+  }
+}
+
+$("#notificationButton").addEventListener("click", async () => {
+  if (!("Notification" in window)) {
+    showNotice("Browser notifications aren't supported in this browser.");
+    return;
+  }
+  const permission = await Notification.requestPermission();
+  $("#notificationButton").hidden = permission === "granted";
+  if (permission === "granted") {
+    notifyFreeTimeReminders();
+  } else {
+    showNotice("Browser notifications were not enabled. In-app reminders will still be available.");
   }
 });
 
@@ -147,6 +191,15 @@ $("#simulateForm").addEventListener("submit", async (event) => {
 async function approve(id) {
   try {
     await api(`/api/entries/${id}/approve`, { method: "POST", body: "{}" });
+    await refresh();
+  } catch (error) {
+    showNotice(error.message);
+  }
+}
+
+async function completeFollowUp(id) {
+  try {
+    await api(`/api/entries/${id}/follow-up/done`, { method: "POST", body: "{}" });
     await refresh();
   } catch (error) {
     showNotice(error.message);

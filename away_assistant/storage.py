@@ -70,8 +70,23 @@ class Store:
         with self.lock:
             return json.loads(json.dumps(self.state))
 
-    def update_settings(self, settings):
+    def update_settings(self, settings, ended_session_id=None):
         with self.lock:
+            if ended_session_id:
+                eligible_statuses = {"draft", "sending", "sent", "send_failed", "manual"}
+                for entry in self.state["entries"]:
+                    is_follow_up = (
+                        entry.get("sessionId") == ended_session_id
+                        and (
+                            entry.get("status") in eligible_statuses
+                            or (
+                                entry.get("status") == "ignored"
+                                and entry.get("reason") == "already_replied"
+                            )
+                        )
+                    )
+                    if is_follow_up and not entry.get("followUp"):
+                        entry["followUp"] = "pending"
             self.state["settings"] = settings
             self.save()
 
@@ -108,3 +123,12 @@ class Store:
     def find_entry(self, entry_id):
         with self.lock:
             return next((entry for entry in self.state["entries"] if entry.get("id") == entry_id), None)
+
+    def complete_follow_up(self, entry_id):
+        with self.lock:
+            entry = next((item for item in self.state["entries"] if item.get("id") == entry_id), None)
+            if not entry or entry.get("followUp") != "pending":
+                return False
+            entry["followUp"] = "done"
+            self.save()
+            return True
