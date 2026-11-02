@@ -1,0 +1,6 @@
+[project]
+name = "whatsapp-away-assistant"
+version = "1.0.0"
+description = "A privacy-minded WhatsApp Business away assistant"
+requires-python = ">=3.9"
+dependencies = ["tzdata>=2025.2"]

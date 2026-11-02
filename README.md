@@ -1,21 +1,25 @@
 # WhatsApp Away Assistant
 
-A small, privacy-minded away assistant for friends. It uses deterministic rules (not an external AI service) to create short replies, prioritizes money/payment/UPI messages for personal handling, skips group chats, observes quiet hours, and keeps one reply or draft per friend per away session.
+A small, privacy-minded away assistant for friends. The backend is Python and uses deterministic rules (not an external AI service) to prepare short replies, route payment/UPI messages for personal handling, skip groups, observe quiet hours, and prevent repeat drafts or replies in one away session. The existing HTML, CSS, and browser JavaScript remain the dashboard presentation layer; Python handles the application logic, storage, HTTP API, webhook verification, and official Cloud API integration.
 
-**Safe defaults:** The app starts inactive in **Draft & approve** mode. Drafts are not sent. Approving a draft sends only after Meta Cloud API credentials are configured and away mode is explicitly activated. Automatic sending is an optional, separately confirmed mode and is rejected unless all required credentials are present. No credentials or live WhatsApp connection are included.
+**Safe defaults:** The app starts inactive in **Draft & approve** mode. Drafts are not sent. Approving one sends only after Meta Cloud API credentials are configured and away mode is explicitly activated. Automatic sending is an optional, separately confirmed mode and is rejected unless all required credentials are present. No credentials or live WhatsApp connection are included.
 
 ## Requirements and local development
 
-- Node.js 22.9 or later
+- Python 3.9 or later
+- `tzdata` (installed from `requirements.txt`; needed for IANA time zones on Windows and other systems without system time-zone data)
 - A Meta developer app with WhatsApp Business Platform Cloud API access for real webhook/send integration. A personal WhatsApp account is not an integration target.
 
 ```powershell
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 Copy-Item .env.example .env
-npm test
-npm run dev
+python -m unittest discover -s test -v
+python app.py
 ```
 
-Open `http://127.0.0.1:3000`. Add all away settings, save, then switch away mode on. “Try a sample message” exercises classifications locally; no message is sent. Local mode binds only to loopback and needs no password.
+Open `http://127.0.0.1:3000`. Add all away settings, save, then switch away mode on. “Try a sample message” exercises classifications locally; no message is sent. Local mode binds only to loopback and needs no password. On macOS/Linux, activate the environment with `source .venv/bin/activate`.
 
 ## Settings and behavior
 
@@ -26,6 +30,7 @@ Open `http://127.0.0.1:3000`. Add all away settings, save, then switch away mode
 - “urgent”, “emergency”, “hospital”, “accident”, and “help” (plus related terms) select a short reply asking the sender to call the configured urgent contact. The app does not claim to notify that person.
 - Group chats and quiet-hour messages are not replied to. The WhatsApp Business Platform's supported webhook payloads are generally for direct business conversations; group detection remains a defensive guard for providers that supply a group marker.
 - One reply or draft per sender per away session prevents repeat replies. Turning away mode off ends the session; turning it on starts a new one.
+- Messages from different friends are processed concurrently, including overlapping Cloud API requests. Each sender is handled in order so simultaneous messages from one friend cannot cause duplicate replies.
 - Reply wording avoids promising a callback or exposing location/plans. The driving reply only says you cannot reply right now.
 
 The application stores settings and a capped recent activity log in `DATA_DIR/assistant.json` (default `./data`). Keep that file private and back it up only if appropriate. It does not store inbound message text or webhook bodies. `APP_PASSWORD` protects the dashboard/API with HTTP Basic authentication; use HTTPS in front of it. Do not expose a public deployment without setting a strong password.
@@ -43,9 +48,7 @@ Meta/provider rules, message templates, the customer-service window, phone-numbe
 
 ## Deployment
 
-Run `npm start` under a process manager or container with a persistent private `DATA_DIR`. Set `HOST=0.0.0.0`, a strong `APP_PASSWORD`, and all required Meta secrets in the hosting platform's secret manager. Put the app behind HTTPS, configure the public webhook URL in Meta, and restrict access to the dashboard/API. Do not bake secrets into images or source. Use a platform that supports Node.js 20+ and outbound HTTPS to `graph.facebook.com`.
-
-The repository intentionally has no external runtime dependencies. Run `npm test` for the unit suite.
+Run `python app.py` under a process manager or container with a persistent private `DATA_DIR`. Set `HOST=0.0.0.0`, a strong `APP_PASSWORD`, and all required Meta secrets in the hosting platform's secret manager. Put the app behind HTTPS, configure the public webhook URL in Meta, and restrict access to the dashboard/API. Do not bake secrets into images or source. Install Python dependencies with `python -m pip install -r requirements.txt`.
 
 ## Later: business replies
 
