@@ -211,6 +211,42 @@ class StorageAndServiceTests(unittest.TestCase):
             self.assertEqual(sum(entry["reason"] == "already_replied" for entry in entries), 1)
             self.assertTrue(settings["sessionId"])
 
+    def test_returning_creates_follow_ups_for_unhandled_away_messages(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = Store(directory).load()
+            service = AssistantService(store, {})
+            settings, errors = service.save_settings(
+                {
+                    **SETTINGS,
+                    "quietHours": {"start": "off", "end": "off"},
+                    "active": True,
+                }
+            )
+            self.assertFalse(errors)
+            session_id = settings["sessionId"]
+            service.process_message({"id": "normal-1", "from": "15550100", "text": "hello"})
+            service.process_message({"id": "money-1", "from": "15550200", "text": "urgent UPI transfer"})
+            service.process_message({"id": "repeat-1", "from": "15550100", "text": "another message"})
+            service.process_message({"id": "group-1", "from": "15550300", "text": "hello", "isGroup": True})
+
+            _, errors = service.save_settings({**settings, "active": False})
+            self.assertFalse(errors)
+            entries = store.snapshot()["entries"]
+            reminders = [entry for entry in entries if entry.get("followUp") == "pending"]
+            self.assertEqual(len(reminders), 3)
+            self.assertEqual(
+                {entry["reason"] for entry in reminders},
+                {"normal", "money", "already_replied"},
+            )
+            self.assertFalse(any(entry.get("reason") == "group" for entry in reminders))
+            self.assertTrue(all(entry["sessionId"] == session_id for entry in reminders))
+
+            reminder_id = reminders[0]["id"]
+            status, result = service.complete_follow_up(reminder_id)
+            self.assertEqual((status, result["status"]), (200, "done"))
+            self.assertEqual(store.find_entry(reminder_id)["followUp"], "done")
+            self.assertEqual(service.complete_follow_up(reminder_id)[0], 404)
+
     def test_webhook_normalizer_does_not_store_or_echo_message_content(self):
         payload = {
             "entry": [{
@@ -308,6 +344,33 @@ class HTTPIntegrationTests(unittest.TestCase):
         self.assertIn("credentials", json.loads(body)["error"])
         persisted = (Path(self.directory.name) / "assistant.json").read_text(encoding="utf-8")
         self.assertNotIn("private sample text", persisted)
+
+    def test_follow_up_can_be_marked_handled_through_dashboard_api(self):
+        valid = {**SETTINGS, "vipFriends": ["none"], "quietHours": {"start": "off", "end": "off"}}
+        self.assertEqual(self.request("/api/settings", "PUT", {**valid, "active": True})[0], 200)
+        self.assertEqual(
+            self.request(
+                "/api/simulate",
+                "POST",
+                {"from": "15550100", "name": "Friend", "text": "hello"},
+                {"Content-Type": "application/json"},
+            )[0],
+            201,
+        )
+        self.assertEqual(self.request("/api/settings", "PUT", {**valid, "active": False})[0], 200)
+        _, state_body, _ = self.request("/api/state")
+        entry = json.loads(state_body)["entries"][0]
+        self.assertEqual(entry["followUp"], "pending")
+        status, body, _ = self.request(
+            f"/api/entries/{entry['id']}/follow-up/done",
+            "POST",
+            {},
+            {"Content-Type": "application/json"},
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(body)["status"], "done")
+        _, state_body, _ = self.request("/api/state")
+        self.assertEqual(json.loads(state_body)["entries"][0]["followUp"], "done")
 
     def test_webhook_requires_signature_and_verifies_meta_callback(self):
         status, body, _ = self.request(

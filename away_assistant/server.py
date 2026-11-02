@@ -207,6 +207,15 @@ def make_handler(service, bind_host, environ):
                 status, result = service.approve_draft(entry_id)
                 self._send_json(status, result)
                 return
+            match = re.fullmatch(r"/api/entries/([^/]+)/follow-up/done", parsed.path)
+            if match:
+                entry_id = unquote(match.group(1))
+                if not ENTRY_ID_PATTERN.fullmatch(entry_id):
+                    self._send_json(404, {"error": "Follow-up reminder not found."})
+                    return
+                status, result = service.complete_follow_up(entry_id)
+                self._send_json(status, result)
+                return
             self._send_json(404, {"error": "Not found."})
 
         def _post_webhook(self):

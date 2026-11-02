@@ -150,39 +150,41 @@ class AssistantService:
         if not sender:
             return
         with self._lock_for(("sender", sender)):
-            with self.settings_lock:
-                settings = dict(self.store.state["settings"])
-                settings["quietHours"] = dict(settings["quietHours"])
-                settings["vipFriends"] = list(settings["vipFriends"])
             message_id = message.get("id") or (str(uuid.uuid4()) if simulate else "")
             if not message_id:
-                return
-            if (not settings["active"] or not settings["sessionId"]) and not simulate:
-                self.store.mark_processed(message_id)
                 return
             if not simulate and self.store.has_processed(message_id):
                 return
 
-            decision = create_decision(message, settings)
-            if decision["action"] in {"skip", "manual"}:
-                status = "manual" if decision["action"] == "manual" else "ignored"
-                entry = self.make_entry(message, decision, settings["sessionId"], status)
-                self.store.add_entry(entry, None if simulate else message_id)
-                return
-            if not simulate and self.store.has_contact_in_session(message["from"], settings["sessionId"]):
-                duplicate_decision = {**decision, "reason": "already_replied"}
-                entry = self.make_entry(message, duplicate_decision, settings["sessionId"], "ignored")
-                self.store.add_entry(entry, message_id)
-                return
+            automatic = False
+            with self.settings_lock:
+                settings = dict(self.store.state["settings"])
+                settings["quietHours"] = dict(settings["quietHours"])
+                settings["vipFriends"] = list(settings["vipFriends"])
+                if (not settings["active"] or not settings["sessionId"]) and not simulate:
+                    self.store.mark_processed(message_id)
+                    return
 
-            automatic = settings["active"] and not simulate and settings["mode"] == "automatic"
-            entry = self.make_entry(
-                message,
-                decision,
-                settings["sessionId"],
-                "sending" if automatic else "draft",
-            )
-            self.store.add_entry(entry, None if simulate else message_id)
+                decision = create_decision(message, settings)
+                if decision["action"] in {"skip", "manual"}:
+                    status = "manual" if decision["action"] == "manual" else "ignored"
+                    entry = self.make_entry(message, decision, settings["sessionId"], status)
+                    self.store.add_entry(entry, None if simulate else message_id)
+                    return
+                if not simulate and self.store.has_contact_in_session(message["from"], settings["sessionId"]):
+                    duplicate_decision = {**decision, "reason": "already_replied"}
+                    entry = self.make_entry(message, duplicate_decision, settings["sessionId"], "ignored")
+                    self.store.add_entry(entry, message_id)
+                    return
+
+                automatic = settings["active"] and not simulate and settings["mode"] == "automatic"
+                entry = self.make_entry(
+                    message,
+                    decision,
+                    settings["sessionId"],
+                    "sending" if automatic else "draft",
+                )
+                self.store.add_entry(entry, None if simulate else message_id)
             if not automatic:
                 return
             try:
@@ -197,6 +199,7 @@ class AssistantService:
     def save_settings(self, data):
         with self.settings_lock:
             old_settings = self.store.state["settings"]
+            ended_session_id = None
             quiet_hours = data.get("quietHours")
             if not isinstance(quiet_hours, dict):
                 quiet_hours = {}
@@ -229,8 +232,10 @@ class AssistantService:
             if settings["active"] and not old_settings["active"]:
                 settings["sessionId"] = str(uuid.uuid4())
             if not settings["active"]:
+                if old_settings["active"]:
+                    ended_session_id = old_settings.get("sessionId")
                 settings["sessionId"] = None
-            self.store.update_settings(settings)
+            self.store.update_settings(settings, ended_session_id)
             return settings, []
 
     def approve_draft(self, entry_id):
@@ -262,3 +267,12 @@ class AssistantService:
                 entry["reason"] = "send_failed"
                 self.store.save()
                 return 502, {"error": "WhatsApp could not send this reply. Review the connection and try again."}
+
+    def complete_follow_up(self, entry_id):
+        entry = self.store.find_entry(entry_id)
+        if not entry:
+            return 404, {"error": "Follow-up reminder not found."}
+        with self._lock_for(("sender", entry["sender"])):
+            if not self.store.complete_follow_up(entry_id):
+                return 404, {"error": "Follow-up reminder not found."}
+        return 200, {"status": "done"}

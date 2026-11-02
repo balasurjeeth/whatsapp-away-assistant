@@ -77,5 +77,9 @@ footer{padding:25px 0 32px;text-align:center;color:#8b978f;font-size:10px}
 footer a{color:#50765d;margin-left:5px}
 .notice{border:1px solid #ead3ae;background:#fff8ed;color:#805c2b;border-radius:9px;padding:11px 14px;font-size:12px;margin-bottom:15px}
 .notice[hidden],#confirmRow[hidden]{display:none}
+.reminder-panel{margin-bottom:22px;border-color:#dbe8dc;background:#fbfdfb}
+.reminder-copy{font-size:12px;line-height:1.55;color:#718077;margin:0 0 14px}
+.reminder-panel>.button{margin-top:13px}
+.reminder-panel[hidden],#notificationButton[hidden]{display:none}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:760px){.shell{padding:0 19px}.columns{grid-template-columns:1fr}.intro{padding-top:42px}.status-card{align-items:flex-start;gap:18px;flex-direction:column}.panel{padding:20px}.topbar{height:68px}}

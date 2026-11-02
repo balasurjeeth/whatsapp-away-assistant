@@ -28,6 +28,15 @@
         </div>
         <button id="activateButton" class="button button-dark" type="button">Set up away mode</button>
       </section>
+      <section id="reminderPanel" class="panel reminder-panel" hidden>
+        <div class="panel-heading">
+          <div><p class="eyebrow">WHEN YOU'RE FREE</p><h2>Messages to check</h2></div>
+          <span id="reminderCount" class="count">0</span>
+        </div>
+        <p class="reminder-copy">A quiet nudge to review the messages you received while away. Message contents are not saved.</p>
+        <div id="reminders" class="entries"></div>
+        <button id="notificationButton" class="button button-outline" type="button">Enable browser notifications</button>
+      </section>
       <div class="columns">
         <section class="panel settings-panel">
           <div class="panel-heading">
