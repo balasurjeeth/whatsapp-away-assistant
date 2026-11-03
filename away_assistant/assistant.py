@@ -60,14 +60,14 @@ def _is_vip(sender, name, vip_friends):
 
 def make_reply(category, settings, sender="", name=""):
     if category == "urgent":
-        return f"This sounds urgent. Please call {settings['urgentContact']} if it can't wait."
+        return f"This sounds urgent. Please call {settings['urgentContact']} if it can't wait. 📞"
     if settings["reason"] == "driving":
-        return "I'm on the road right now, so I can't reply. Thanks for understanding!"
+        return "I'm on the road right now, so I can't reply. Thanks for understanding! 🚗"
     if _is_vip(sender, name, settings["vipFriends"]):
-        return "Hey, I'm caught up with something at the moment. If it's urgent, ring me."
+        return "Hey, I'm caught up with something at the moment. If it's urgent, ring me. 💛"
     if settings["returnAt"].strip():
-        return f"Hey, I'm tied up until {settings['returnAt'].strip()}. Thanks for your patience!"
-    return "Hey! I'm a bit busy right now. I've seen your message, and thanks for understanding!"
+        return f"Hey, I'm tied up until {settings['returnAt'].strip()}. Thanks for your patience! 🙂"
+    return "Hey! I'm a bit busy right now. I've seen your message, and thanks for understanding! 🙂"
 
 
 def create_decision(message, settings, now=None):

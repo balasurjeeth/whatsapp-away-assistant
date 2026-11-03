@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import json
+import re
 import tempfile
 import threading
 import unittest
@@ -70,8 +71,10 @@ class AssistantRulesTests(unittest.TestCase):
         for reply, expected in cases:
             with self.subTest(reply=reply):
                 self.assertIn(expected.casefold(), reply.casefold())
-                self.assertLessEqual(len([s for s in reply.replace("!", ".").split(".") if s.strip()]), 2)
+                without_emoji = re.sub(r"[🙂📞🚗💛]", "", reply)
+                self.assertLessEqual(len(re.findall(r"[.!?](?=\s|$)", without_emoji)), 2)
                 self.assertNotRegex(reply, r"\b(?:I'll|I will|letting .* know)\b")
+                self.assertEqual(sum(reply.count(emoji) for emoji in ("🙂", "📞", "🚗", "💛")), 1)
 
     def test_required_settings_and_timezone_are_validated(self):
         incomplete = {**SETTINGS, "vipFriends": [], "timeZone": "invalid/zone"}

@@ -33,6 +33,7 @@ Open `http://127.0.0.1:3000`. Add all away settings, save, then switch away mode
 - Messages from different friends are processed concurrently, including overlapping Cloud API requests. Each sender is handled in order so simultaneous messages from one friend cannot cause duplicate replies.
 - When you switch away mode off with **I'm free now**, the dashboard creates follow-up reminders for messages received during that away session. Mark each handled when you're done. Grant browser notification permission from the reminder panel to receive a one-time notification then; reminders remain in the dashboard if browser notifications are unavailable.
 - Reply wording avoids promising a callback or exposing location/plans. The driving reply only says you cannot reply right now.
+- Eligible away replies include one context-appropriate emoji. Money/payment messages remain reply-free.
 
 The application stores settings and a capped recent activity log in `DATA_DIR/assistant.json` (default `./data`). Keep that file private and back it up only if appropriate. It does not store inbound message text or webhook bodies. `APP_PASSWORD` protects the dashboard/API with HTTP Basic authentication; use HTTPS in front of it. Do not expose a public deployment without setting a strong password.
 
