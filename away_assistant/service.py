@@ -56,6 +56,11 @@ def normalize_webhook(payload):
                         "name": names.get(sender, ""),
                         "text": text,
                         "unclassifiable": message_type not in {"text", "button", "interactive"},
+                        "mediaKind": (
+                            "voice_note"
+                            if message_type == "audio" and (message.get("audio") or {}).get("voice")
+                            else ""
+                        ),
                         "isGroup": bool(message.get("is_group")) or sender.endswith("@g.us"),
                     }
                 )
@@ -142,6 +147,7 @@ class AssistantService:
             "category": decision["category"],
             "status": status,
             "reason": decision["reason"],
+            "mediaKind": "voice_note" if decision["category"] == "voice_note" else "",
             "reply": decision.get("reply", ""),
         }
 

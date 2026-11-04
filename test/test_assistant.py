@@ -55,11 +55,17 @@ class AssistantRulesTests(unittest.TestCase):
         group = create_decision({"from": "1", "text": "hello", "isGroup": True}, SETTINGS)
         payment = create_decision({"from": "1", "text": "urgent UPI transfer"}, SETTINGS)
         media = create_decision({"from": "1", "text": "", "unclassifiable": True}, SETTINGS)
+        voice_note = create_decision(
+            {"from": "1", "text": "", "unclassifiable": True, "mediaKind": "voice_note"},
+            SETTINGS,
+        )
         self.assertEqual(group["action"], "skip")
         self.assertEqual(payment["action"], "manual")
         self.assertEqual(media["action"], "manual")
+        self.assertEqual(voice_note, {"action": "manual", "reason": "voice_note_manual", "category": "voice_note"})
         self.assertNotIn("reply", payment)
         self.assertNotIn("reply", media)
+        self.assertNotIn("reply", voice_note)
 
     def test_replies_are_short_and_avoid_promises(self):
         cases = (
@@ -249,6 +255,55 @@ class StorageAndServiceTests(unittest.TestCase):
             self.assertEqual((status, result["status"]), (200, "done"))
             self.assertEqual(store.find_entry(reminder_id)["followUp"], "done")
             self.assertEqual(service.complete_follow_up(reminder_id)[0], 404)
+
+    def test_voice_notes_are_kept_private_and_reminded_after_away_mode(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = Store(directory).load()
+            service = AssistantService(store, {})
+            settings, errors = service.save_settings(
+                {
+                    **SETTINGS,
+                    "quietHours": {"start": "off", "end": "off"},
+                    "active": True,
+                }
+            )
+            self.assertFalse(errors)
+            payload = {
+                "entry": [{
+                    "changes": [{
+                        "value": {
+                            "contacts": [{"wa_id": "15550100", "profile": {"name": "Maya"}}],
+                            "messages": [{
+                                "id": "voice-message-id",
+                                "from": "15550100",
+                                "type": "audio",
+                                "audio": {
+                                    "id": "private-media-id",
+                                    "mime_type": "audio/ogg",
+                                    "voice": True,
+                                },
+                            }],
+                        }
+                    }]
+                }]
+            }
+            [message] = normalize_webhook(payload)
+            self.assertEqual(message["mediaKind"], "voice_note")
+            service.process_message(message)
+            entry = store.snapshot()["entries"][0]
+            self.assertEqual(entry["category"], "voice_note")
+            self.assertEqual(entry["status"], "manual")
+            self.assertFalse(entry["reply"])
+
+            _, errors = service.save_settings({**settings, "active": False})
+            self.assertFalse(errors)
+            entry = store.snapshot()["entries"][0]
+            self.assertEqual(entry["followUp"], "pending")
+            saved = (Path(directory) / "assistant.json").read_text(encoding="utf-8")
+            self.assertNotIn("private-media-id", saved)
+            self.assertNotIn("audio/ogg", saved)
+            self.assertNotIn('"voice": true', saved)
+            self.assertNotIn("audio marker private content", saved)
 
     def test_webhook_normalizer_does_not_store_or_echo_message_content(self):
         payload = {

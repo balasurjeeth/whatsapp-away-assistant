@@ -27,6 +27,7 @@ Open `http://127.0.0.1:3000`. Add all away settings, save, then switch away mode
 - Times use 24-hour time in the browser's detected IANA time zone, saved with settings so deployments in a different server zone still honor the user's quiet hours. Quiet intervals can span midnight.
 - Payment/money/UPI detection runs before urgent detection; matching messages are logged for personal handling and never receive an automated reply.
 - Non-text media that the rules cannot safely classify is also left for personal handling rather than receiving an automatic reply.
+- Incoming voice notes are recognized from the WhatsApp webhook's audio/voice marker, but never downloaded, transcribed, or replied to automatically. When you turn away mode off, they appear as listen-and-follow-up reminders; message content and audio media identifiers are not saved.
 - “urgent”, “emergency”, “hospital”, “accident”, and “help” (plus related terms) select a short reply asking the sender to call the configured urgent contact. The app does not claim to notify that person.
 - Group chats and quiet-hour messages are not replied to. The WhatsApp Business Platform's supported webhook payloads are generally for direct business conversations; group detection remains a defensive guard for providers that supply a group marker.
 - One reply or draft per sender per away session prevents repeat replies. Turning away mode off ends the session; turning it on starts a new one.
