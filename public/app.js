@@ -55,22 +55,26 @@ function renderReminders(entries) {
   $("#reminderPanel").hidden = reminders.length === 0;
   $("#reminderCount").textContent = reminders.length;
   $("#reminders").innerHTML = reminders.map((entry) => {
-    const category = entry.category === "money" ? "Payment to handle" : entry.category === "urgent" ? "Urgent message" : "Message";
+    const category = entry.mediaKind === "voice_note" ? "Voice note to listen to" :
+      entry.category === "money" ? "Payment to handle" : entry.category === "urgent" ? "Urgent message" : "Message";
     return `<article class="entry"><div class="entry-top"><span class="entry-name">${escapeHtml(entry.name)}</span><time class="entry-time">${new Date(entry.createdAt).toLocaleString()}</time></div><div class="entry-actions"><span class="entry-status">${escapeHtml(category)} · follow up</span><button class="button button-outline" data-follow-up="${escapeHtml(entry.id)}">Mark handled</button></div></article>`;
   }).join("");
 }
 
 function renderEntry(entry) {
-  const categoryLabel = entry.category === "money" ? "Payment — handle personally" :
+  const categoryLabel = entry.mediaKind === "voice_note" ? "Voice note · listen later" :
+    entry.category === "money" ? "Payment — handle personally" :
     entry.category === "urgent" ? "Urgent" : entry.category === "normal" ? "Friend" : entry.category;
-  const statusLabel = {
+  const statusLabel = entry.mediaKind === "voice_note" && entry.status === "manual"
+    ? "No reply · listen and follow up"
+    : ({
     draft: "Draft · not sent",
     sent: "Sent",
     sending: "Sending…",
     send_failed: "Not sent · check connection",
     manual: "No reply · handle personally",
     ignored: entry.reason === "group" ? "Group · no reply" : entry.reason === "quiet_hours" ? "Quiet hours · no reply" : entry.reason === "already_replied" ? "Already handled this session" : "Away mode was off",
-  }[entry.status] || entry.status;
+  }[entry.status] || entry.status);
   const button = entry.status === "draft" && state.settings.active && state.settings.mode === "approval" && state.connected
     ? `<button class="button button-outline" data-approve="${escapeHtml(entry.id)}">Approve & send</button>`
     : "";

@@ -27,6 +27,7 @@ Open `http://127.0.0.1:3000`. Add all away settings, save, then switch away mode
 - Times use 24-hour time in the browser's detected IANA time zone, saved with settings so deployments in a different server zone still honor the user's quiet hours. Quiet intervals can span midnight.
 - Payment/money/UPI detection runs before urgent detection; matching messages are logged for personal handling and never receive an automated reply.
 - Non-text media that the rules cannot safely classify is also left for personal handling rather than receiving an automatic reply.
+- Incoming voice notes are recognized from the WhatsApp webhook's audio/voice marker, but never downloaded, transcribed, or replied to automatically. When you turn away mode off, they appear as listen-and-follow-up reminders; message content and audio media identifiers are not saved.
 - “urgent”, “emergency”, “hospital”, “accident”, and “help” (plus related terms) select a short reply asking the sender to call the configured urgent contact. The app does not claim to notify that person.
 - Group chats and quiet-hour messages are not replied to. The WhatsApp Business Platform's supported webhook payloads are generally for direct business conversations; group detection remains a defensive guard for providers that supply a group marker.
 - One reply or draft per sender per away session prevents repeat replies. Turning away mode off ends the session; turning it on starts a new one.
@@ -34,6 +35,7 @@ Open `http://127.0.0.1:3000`. Add all away settings, save, then switch away mode
 - When you switch away mode off with **I'm free now**, the dashboard creates follow-up reminders for messages received during that away session. Mark each handled when you're done. Grant browser notification permission from the reminder panel to receive a one-time notification then; reminders remain in the dashboard if browser notifications are unavailable.
 - Reply wording avoids promising a callback or exposing location/plans. The driving reply only says you cannot reply right now.
 - Eligible away replies include one context-appropriate emoji. Money/payment messages remain reply-free.
+- This app cannot detect personal WhatsApp voice calls, phone-call status, your online/offline state, or call hangups. It only receives supported WhatsApp Business Platform message webhooks; call-triggered replies are not supported.
 
 The application stores settings and a capped recent activity log in `DATA_DIR/assistant.json` (default `./data`). Keep that file private and back it up only if appropriate. It does not store inbound message text or webhook bodies. `APP_PASSWORD` protects the dashboard/API with HTTP Basic authentication; use HTTPS in front of it. Do not expose a public deployment without setting a strong password.
 

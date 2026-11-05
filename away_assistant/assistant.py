@@ -77,6 +77,8 @@ def create_decision(message, settings, now=None):
     if category == "money":
         return {"action": "manual", "reason": "money", "category": category}
     if message.get("unclassifiable"):
+        if message.get("mediaKind") == "voice_note":
+            return {"action": "manual", "reason": "voice_note_manual", "category": "voice_note"}
         return {"action": "manual", "reason": "unclassified", "category": "unclassified"}
     if is_quiet_time(now or datetime.now().astimezone(), settings["quietHours"], settings["timeZone"]):
         return {"action": "skip", "reason": "quiet_hours", "category": category}
