@@ -67,6 +67,16 @@ class AssistantRulesTests(unittest.TestCase):
         self.assertNotIn("reply", media)
         self.assertNotIn("reply", voice_note)
 
+    def test_unrecognized_contact_gets_a_polite_intro_draft(self):
+        decision = create_decision(
+            {"from": "15559990000", "name": "New Person", "text": "Hi there"},
+            SETTINGS,
+        )
+        self.assertEqual(decision["action"], "draft")
+        self.assertFalse(decision["contactKnown"])
+        self.assertIn("I don't recognize this number", decision["reply"])
+        self.assertIn("who this is", decision["reply"])
+
     def test_replies_are_short_and_avoid_promises(self):
         cases = (
             (make_reply("urgent", SETTINGS, "1"), "Alex"),
@@ -142,6 +152,7 @@ class StorageAndServiceTests(unittest.TestCase):
             settings, errors = service.save_settings(
                 {
                     **SETTINGS,
+                    "vipFriends": ["15550100", "15550200"],
                     "quietHours": {"start": "off", "end": "off"},
                     "active": True,
                     "mode": "automatic",
@@ -179,6 +190,40 @@ class StorageAndServiceTests(unittest.TestCase):
             entries = store.snapshot()["entries"]
             self.assertEqual({entry["status"] for entry in entries}, {"sent"})
             self.assertEqual({entry["sender"] for entry in entries}, {"15550100", "15550200"})
+
+    def test_unknown_numbers_stay_drafts_in_automatic_mode_until_approved(self):
+        with tempfile.TemporaryDirectory() as directory:
+            credentials = {
+                "WHATSAPP_ACCESS_TOKEN": "test-token",
+                "WHATSAPP_PHONE_NUMBER_ID": "test-phone",
+                "WHATSAPP_API_VERSION": "v99.0",
+                "WHATSAPP_VERIFY_TOKEN": "test-verify",
+                "WHATSAPP_APP_SECRET": "test-secret",
+            }
+            store = Store(directory).load()
+            service = AssistantService(store, credentials)
+            service.save_settings(
+                {
+                    **SETTINGS,
+                    "quietHours": {"start": "off", "end": "off"},
+                    "active": True,
+                    "mode": "automatic",
+                    "confirmAutomatic": True,
+                }
+            )
+            with patch.object(service, "send_whatsapp_message") as send_message:
+                service.process_message(
+                    {"id": "unknown-message", "from": "15559990000", "name": "New Person", "text": "hello"}
+                )
+                send_message.assert_not_called()
+
+            entry = store.snapshot()["entries"][0]
+            self.assertEqual(entry["status"], "draft")
+            self.assertFalse(entry["contactKnown"])
+            with patch.object(service, "send_whatsapp_message") as send_message:
+                status, result = service.approve_draft(entry["id"])
+                self.assertEqual((status, result["status"]), (200, "sent"))
+                send_message.assert_called_once_with("15559990000", entry["reply"])
 
     def test_simultaneous_messages_from_one_friend_still_create_one_draft(self):
         with tempfile.TemporaryDirectory() as directory:

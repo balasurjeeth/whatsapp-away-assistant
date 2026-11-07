@@ -57,7 +57,7 @@
             <label>Urgent contact <span class="label-hint">The person to call if it can't wait</span>
               <input id="urgentContact" required maxlength="100" placeholder="Name or phone number">
             </label>
-            <label>VIP friends <span class="label-hint">Names or numbers, separated by commas; enter “none” if none</span>
+            <label>VIP friends <span class="label-hint">Recognized friends/family; others get approval-only drafts. Enter names or numbers, or “none”.</span>
               <input id="vipFriends" required maxlength="500" placeholder="Maya, +1 555 0100">
             </label>
             <fieldset>
@@ -74,7 +74,7 @@
             <fieldset class="mode-fieldset">
               <legend>How should replies work?</legend>
               <label class="radio-card"><input type="radio" name="mode" value="approval" checked><span><strong>Draft & approve</strong><small>Prepare a reply for your review. Nothing sends automatically.</small></span></label>
-              <label class="radio-card"><input type="radio" name="mode" value="automatic"><span><strong>Automatic replies</strong><small>Send eligible replies automatically while away.</small></span></label>
+              <label class="radio-card"><input type="radio" name="mode" value="automatic"><span><strong>Automatic replies</strong><small>Send eligible VIP replies automatically. New or unrecognized numbers stay as drafts for your approval.</small></span></label>
               <label id="confirmRow" class="confirm-row" hidden><input id="confirmAutomatic" type="checkbox"><span>I understand this will automatically send replies through my configured WhatsApp Business account.</span></label>
             </fieldset>
             <div class="form-actions"><button class="button button-primary" type="submit">Save settings</button><span id="saveState" class="save-state" aria-live="polite"></span></div>

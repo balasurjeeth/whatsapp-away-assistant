@@ -36,7 +36,7 @@ function render() {
     ? settings.mode === "automatic" ? "Automatic replies are on" : "Draft & approve is on"
     : "Draft mode is ready";
   $("#modeDescription").textContent = settings.active
-    ? settings.mode === "automatic" ? "Eligible replies send automatically; money and payment messages always wait for you." : "Replies are prepared for your approval; nothing sends without your say-so."
+    ? settings.mode === "automatic" ? "Eligible VIP replies send automatically. New numbers stay in drafts; money and payment messages wait for you." : "Replies are prepared for your approval; nothing sends without your say-so."
     : connected ? "Set your details, then switch on when you need a little space." : "Set up drafts here; connect an official WhatsApp Business account to receive messages.";
   $("#entryCount").textContent = entries.length;
   $("#entries").innerHTML = entries.length ? entries.map(renderEntry).join("") : '<p class="empty-state">Your recent activity will show up here.</p>';
@@ -62,10 +62,14 @@ function renderReminders(entries) {
 }
 
 function renderEntry(entry) {
-  const categoryLabel = entry.mediaKind === "voice_note" ? "Voice note · listen later" :
+  const categoryLabel = entry.contactKnown === false
+    ? entry.category === "urgent" ? "New number · urgent" : "New or unrecognized number"
+    : entry.mediaKind === "voice_note" ? "Voice note · listen later" :
     entry.category === "money" ? "Payment — handle personally" :
     entry.category === "urgent" ? "Urgent" : entry.category === "normal" ? "Friend" : entry.category;
-  const statusLabel = entry.mediaKind === "voice_note" && entry.status === "manual"
+  const statusLabel = entry.contactKnown === false && entry.status === "draft"
+    ? "Draft · your approval needed"
+    : entry.mediaKind === "voice_note" && entry.status === "manual"
     ? "No reply · listen and follow up"
     : ({
     draft: "Draft · not sent",
@@ -75,7 +79,8 @@ function renderEntry(entry) {
     manual: "No reply · handle personally",
     ignored: entry.reason === "group" ? "Group · no reply" : entry.reason === "quiet_hours" ? "Quiet hours · no reply" : entry.reason === "already_replied" ? "Already handled this session" : "Away mode was off",
   }[entry.status] || entry.status);
-  const button = entry.status === "draft" && state.settings.active && state.settings.mode === "approval" && state.connected
+  const button = entry.status === "draft" && state.settings.active && state.connected &&
+    (state.settings.mode === "approval" || entry.contactKnown === false)
     ? `<button class="button button-outline" data-approve="${escapeHtml(entry.id)}">Approve & send</button>`
     : "";
   return `<article class="entry"><div class="entry-top"><span class="entry-name">${escapeHtml(entry.name)}</span><time class="entry-time">${new Date(entry.createdAt).toLocaleString()}</time></div><div class="entry-meta"><span class="tag ${entry.category === "money" ? "warn" : ""}">${escapeHtml(categoryLabel)}</span></div>${entry.reply ? `<p class="entry-reply">${escapeHtml(entry.reply)}</p>` : ""}<div class="entry-actions"><span class="entry-status">${escapeHtml(statusLabel)}</span>${button}</div></article>`;
