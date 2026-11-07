@@ -145,6 +145,7 @@ class AssistantService:
             "sender": message["from"],
             "name": message.get("name") or "Friend",
             "category": decision["category"],
+            "contactKnown": decision.get("contactKnown", True),
             "status": status,
             "reason": decision["reason"],
             "mediaKind": "voice_note" if decision["category"] == "voice_note" else "",
@@ -183,7 +184,12 @@ class AssistantService:
                     self.store.add_entry(entry, message_id)
                     return
 
-                automatic = settings["active"] and not simulate and settings["mode"] == "automatic"
+                automatic = (
+                    settings["active"]
+                    and not simulate
+                    and settings["mode"] == "automatic"
+                    and decision.get("contactKnown", True)
+                )
                 entry = self.make_entry(
                     message,
                     decision,
@@ -256,7 +262,9 @@ class AssistantService:
                 settings = dict(self.store.state["settings"])
             if not settings["active"] or not settings["sessionId"] or entry["sessionId"] != settings["sessionId"]:
                 return 409, {"error": "Activate away mode in approval mode before sending."}
-            if settings["mode"] != "approval":
+            if settings["mode"] != "approval" and (
+                settings["mode"] != "automatic" or entry.get("contactKnown", True)
+            ):
                 return 409, {"error": "Manual approval is available only in approval mode."}
             if not self.connected():
                 return 400, {"error": "Sending is unavailable until Meta Cloud API credentials are configured."}

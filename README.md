@@ -24,6 +24,7 @@ Open `http://127.0.0.1:3000`. Add all away settings, save, then switch away mode
 ## Settings and behavior
 
 - Away reason, return time/day, urgent contact, VIP names or phone numbers, and quiet hours are required before activation. Use `none` for no VIP friends and `off` for both quiet-hour fields to disable quiet hours.
+- The VIP list is the only contact recognition list in this version. Senders not matched there are treated as new or unrecognized: the assistant drafts a polite introduction for your approval and never auto-sends it, even in automatic mode. Urgent wording still gets an urgent draft, and money/payment messages still get no reply.
 - Times use 24-hour time in the browser's detected IANA time zone, saved with settings so deployments in a different server zone still honor the user's quiet hours. Quiet intervals can span midnight.
 - Payment/money/UPI detection runs before urgent detection; matching messages are logged for personal handling and never receive an automated reply.
 - Non-text media that the rules cannot safely classify is also left for personal handling rather than receiving an automatic reply.

@@ -58,11 +58,13 @@ def _is_vip(sender, name, vip_friends):
     return False
 
 
-def make_reply(category, settings, sender="", name=""):
+def make_reply(category, settings, sender="", name="", known_contact=None):
     if category == "urgent":
         return f"This sounds urgent. Please call {settings['urgentContact']} if it can't wait. 📞"
     if settings["reason"] == "driving":
         return "I'm on the road right now, so I can't reply. Thanks for understanding! 🚗"
+    if known_contact is False:
+        return "Hi! I don't recognize this number. Could you let me know who this is and what you need? 🙂"
     if _is_vip(sender, name, settings["vipFriends"]):
         return "Hey, I'm caught up with something at the moment. If it's urgent, ring me. 💛"
     if settings["returnAt"].strip():
@@ -82,11 +84,19 @@ def create_decision(message, settings, now=None):
         return {"action": "manual", "reason": "unclassified", "category": "unclassified"}
     if is_quiet_time(now or datetime.now().astimezone(), settings["quietHours"], settings["timeZone"]):
         return {"action": "skip", "reason": "quiet_hours", "category": category}
+    known_contact = _is_vip(message.get("from", ""), message.get("name", ""), settings["vipFriends"])
     return {
         "action": "draft",
         "reason": category,
         "category": category,
-        "reply": make_reply(category, settings, message.get("from", ""), message.get("name", "")),
+        "contactKnown": known_contact,
+        "reply": make_reply(
+            category,
+            settings,
+            message.get("from", ""),
+            message.get("name", ""),
+            known_contact,
+        ),
     }
 
 
